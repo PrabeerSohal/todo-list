@@ -17,26 +17,31 @@
 # Storage: 
 # store tasks in a file 
 
-from datetime import date, time
+from datetime import datetime, date, time
 from dataclasses import dataclass
 
 @dataclass
 class Task:
-
     description: str
-    time: str
-    date: int
+    time: time
+    date: date
     status: str
 
 task = {}
  
 def create_task():
-	task_name = input('What is the task name?')
-	description = input('Description:')
-	time = input('Time:')
-	date = input('Date:')
-	status = input('Status:')
-	task[task_name] = Task(description, time, date, status)
+	task_name = input('What is the task name? ')
+	description = input('Description: ')
+
+	time_str = input('Time (HH:MM): ')
+	date_str = input('Date (YYYY-MM-DD): ')
+
+	status = input('Status: ')
+
+	task_time = datetime.strptime(time_str, "%H:%M").time()
+	task_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+	task[task_name] = Task(description, task_time, task_date, status)
 
 
 def delete_task():
@@ -50,21 +55,24 @@ def delete_task():
 def update_task():
 	x = input('Which task do you want to update:')
 	try:
-		print('Description:' + task[x].description + '\nTime:' + task[x].time + '\nDate:' + task[x].date + '\nStatus:' + task[x].status)
+		print(f"Description: {task[x].description}"
+		f"\nTime: {task[x].time}"
+		f"\nDate: {task[x].date}"
+		f"\nStatus: {task[x].status}")
 	except:
 		print('Task not found')
 		return
 	print('What do you want to update? Press Enter if you do not want to update the particular information.')
 	description = input('Description:')
-	time = input('Time:')
-	date = input('Date:')
+	time_input = input('Time (HH:MM): ')
+	date_input = input('Date (YYYY-MM-DD): ')
 	status = input('Status:')
 	if description != '':
 		task[x].description = description
-	if time != '':
-		task[x].time = time
-	if date != '':
-		task[x].date = date
+	if time_input != '':
+		task[x].time = datetime.strptime(time_input, "%H:%M").time()
+	if date_input != '':
+		task[x].date = datetime.strptime(date_input, "%Y-%m-%d").date()
 	if status != '':
 		task[x].status = status			
 
