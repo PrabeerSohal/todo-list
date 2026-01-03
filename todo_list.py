@@ -1,23 +1,7 @@
-# To do list in python
+# Stage 2:
+# Move tasks from file to database. Use sqlite3
 
-# Stage 1 ( 1 day):
-# Terminal based
-# Options:
-
-# Create a task
-
-# Each task should have:
-# Description, time, date, status
-
-# Delete a task
-
-# Update a task
-# Update anything in the task
-
-# Storage: 
-# store tasks in a file 
-
-import json
+import sqlite3
 from datetime import datetime, date, time
 from dataclasses import dataclass
 
@@ -37,6 +21,7 @@ def get_valid_status():
             return status
         print("Status must be 'done' or 'not done'")
 
+
 def get_valid_date():
     while True:
         date_str = input("Date (YYYY-MM-DD): ").strip()
@@ -45,13 +30,15 @@ def get_valid_date():
         except ValueError:
             print("Invalid date format. Please use YYYY-MM-DD.")
 
+
 def get_valid_time():
     while True:
         time_str = input("Time (HH:MM): ").strip()
         try:
             return datetime.strptime(time_str, "%H:%M").time()
         except ValueError:
-            print("Invalid time format. Please use HH:MM (24-hour).")            
+            print("Invalid time format. Please use HH:MM (24-hour).")  
+
  
 def create_task():
     task_name = input('What is the task name? ')
@@ -59,16 +46,21 @@ def create_task():
     task_time = get_valid_time()
     task_date = get_valid_date()
     status = get_valid_status()
+    
     task[task_name] = Task(description, task_time, task_date, status)
+    
+    save_task_to_db(task_name, task[task_name])
 
 
 def delete_task():
-	x = input('Which task do you want to delete:')
-	try:
-		del task[x]
-		print('Task ' + x + ' deleted')
-	except:
-		print('Key not found')	
+    x = input('Which task do you want to delete: ')
+    if x in task:
+        del task[x]  # remove from memory
+        delete_task_from_db(x)  # remove from database
+        print(f'Task {x} deleted')
+    else:
+        print('Task not found')	
+
 
 def update_task():
 	x = input('Which task do you want to update:')
@@ -92,7 +84,10 @@ def update_task():
 	if date_input != '':
 		task[x].date = datetime.strptime(date_input, "%Y-%m-%d").date()
 	if status != '':
-		task[x].status = status	
+		task[x].status = status
+
+	save_task_to_db(x, task[x])
+
 
 def task_to_dict(task: Task):
     return {
@@ -102,33 +97,56 @@ def task_to_dict(task: Task):
         "status": task.status
     }
 
-def save_tasks(filename="tasks.json"):
-    data = {}
-    for name, task_obj in task.items():
-        data[name] = task_to_dict(task_obj)
 
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=4)
+conn = sqlite3.connect("tasks.db")
+cursor = conn.cursor()
 
-def load_tasks(filename="tasks.json"):
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS tasks (
+    name TEXT PRIMARY KEY,
+    description TEXT,
+    time TEXT,
+    date TEXT,
+    status TEXT
+)
+""")
+conn.commit()    
+
+
+def save_task_to_db(task_name, task_obj):
+    cursor.execute("""
+    INSERT OR REPLACE INTO tasks (name, description, time, date, status)
+    VALUES (?, ?, ?, ?, ?)
+    """, (
+        task_name,
+        task_obj.description,
+        task_obj.time.strftime("%H:%M"),
+        task_obj.date.strftime("%Y-%m-%d"),
+        task_obj.status
+    ))
+    conn.commit()
+
+
+def load_tasks_from_db():
     global task
-    try:
-        with open(filename, "r") as f:
-            data = json.load(f)
-
-        for name, task_data in data.items():
-            task[name] = Task(
-                description=task_data["description"],
-                time=datetime.strptime(task_data["time"], "%H:%M").time(),
-                date=datetime.strptime(task_data["date"], "%Y-%m-%d").date(),
-                status=task_data["status"]
-            )
-    except FileNotFoundError:
-        task = {}
+    task = {}
+    cursor.execute("SELECT name, description, time, date, status FROM tasks")
+    rows = cursor.fetchall()
+    for name, desc, t_str, d_str, status in rows:
+        task[name] = Task(
+            description=desc,
+            time=datetime.strptime(t_str, "%H:%M").time(),
+            date=datetime.strptime(d_str, "%Y-%m-%d").date(),
+            status=status
+        )
 
 
+def delete_task_from_db(task_name):
+    cursor.execute("DELETE FROM tasks WHERE name = ?", (task_name,))
+    conn.commit()
 
-load_tasks()
+
+load_tasks_from_db()
 while True:
 	print('Press 1 to create a task\nPress 2 to delete a task\nPress 3 to update a task\nPress 4 to end program')
 	x = input()
@@ -139,7 +157,6 @@ while True:
 	elif x == '3':
 		update_task()
 	elif x == '4':
-		save_tasks()
 		break
 print('Program Ended')		
 
