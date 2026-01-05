@@ -240,19 +240,4 @@ def api_delete_task(name):
     return jsonify({"message": f"Task '{name}' deleted"})
 
 if __name__ == "__main__":
-    load_tasks_from_db()
-    while True:
-        print('Press 1 to create a task')
-        print('Press 2 to delete a task')
-        print('Press 3 to update a task')
-        print('Press 4 to end program')
-        x = input()
-        if x == '1':
-            create_task()
-        elif x == '2':
-            delete_task()
-        elif x == '3':
-            update_task()
-        elif x == '4':
-            break
-    print('Program Ended')
+    app.run(debug=True)
